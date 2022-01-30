@@ -4,15 +4,15 @@
 
 ## listing 55% of supply on pancakeswap
 
-## 15% for presale
+## 15% for presale | 150,000,000
 
-## 8% for team
+## 8% for team | 80,000,000
 
-## 8% for marketing
+## 8% for marketing | 80,000,000
 
-## 10% environmental causes wallet
+## 10% environmental causes wallet | 100,000,000
 
-## 4% burned
+## 4% burned | 40,000,000
 
 # Taxes:
 
