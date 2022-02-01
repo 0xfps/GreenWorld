@@ -858,11 +858,10 @@ contract GREENWORLD is ERC20, Ownable {
     address public deadAddress = 0x000000000000000000000000000000000000dEaD;
  
     bool private swapping;
-    bool public tradingIsEnabled = true;
+    bool public tradingIsEnabled = false;
     bool public devEnabled = true;
     bool public marketingEnabled = true;
     bool public environmentalEnabled = true;
-    bool public swapAndLiquifyEnabled = true;
     bool public busdDividendEnabled = true;
 
  
@@ -872,70 +871,29 @@ contract GREENWORLD is ERC20, Ownable {
     address public marketingWallet = 0x60a5249d5E94F3dbAdc5960C8751109D7a92e317;
     address public environmentalWallet = 0x9146024689E43216Da46CD1dD259165B825B4D71;
  
-    // Ask client if they want max wallet balance
-    uint256 public maxBuyTranscationAmount = 1000000000000000 * (10**18);
-    uint256 public maxSellTransactionAmount = 4000000000000 * (10**18);
     uint256 public maxWalletBalance = 1000000000000000 * (10**18);
     // 10000
     uint256 public swapTokensAtAmount = 20 * 10**18;
 
-    uint256 private numerator = 3;
-
-    // 1.5% busd reward
-    // uint256 public busdDividendRewardsFee =  numerator.div(2);
-    uint256 public busdDividendRewardsFee;
+    // 2% busd reward
+    uint256 public busdDividendRewardsFee =  2;
     uint256 public previousBusdDividendRewardsFee;
 
-     // 1.5% dev fee
-    // uint256 public devFee =  numerator.div(2);
-    uint256 public devFee;
+     // 1% dev fee
+    uint256 public devFee =  1;
     uint256 public previousDevFee;
     
-    // 1.5% marketing fee
-    // uint256 public marketingFee =  numerator.div(2);
-    uint256 public marketingFee;
+    // 2% marketing fee
+    uint256 public marketingFee =  2;
     uint256 public previousMarketingFee;
 
-    // 1% liquidity fee
-    // uint256 public liquidityFee = 1;
-    uint256 public liquidityFee;
-    uint256 public previousLiquidityFee;
-
-    // 1.5% environmental fee
-    // uint256 public environmentalFee =  numerator.div(2);
-    uint256 public environmentalFee;
+    // 2% environmental fee
+    uint256 public environmentalFee =  2;
     uint256 public previousEnvironmentalFee;
 
-    uint256 public totalFees = busdDividendRewardsFee.add(devFee).add(marketingFee).add(liquidityFee).add(environmentalFee);
-    
-    
-    // 1.5% busd reward
-    uint256 public _busdDividendRewardsFeeBuy = 2;
-    // 1.5% dev fee
-    uint256 public _devFeeBuy = 2;
-    // 1.5% marketing fee
-    uint256 public _marketingFeeBuy = 2;
-    // 1% liquidity fee
-    uint256 public _LpFeeBuy = 1;
-    // 1.5% environmental fee
-    uint256 public _environmentalFeeBuy =  2;
-
-    // 1.5% busd reward
-    uint256 public _busdDividendRewardsFeeSell= 2;
-    // 1.5% dev fee
-    uint256 public _devFeeSell= 2; 
-    // 1.5% marketing fee
-    uint256 public _marketingFeeSell = 2;
-    // 1% liquidity fee
-    uint256 public _LpFeeSell= 1;
-    // 1.5% environmental fee
-    uint256 public _environmentalFeeSell = 2;
- 
- 
+    uint256 public totalFees = busdDividendRewardsFee.add(devFee).add(marketingFee).add(environmentalFee);
+     
     uint256 public busdDividedRewardsInContract;
-    uint256 public tokensForLpInContract;
-
-    // uint256 public sellFeeIncreaseFactor = 130;
  
     uint256 public gasForProcessing = 600000;
  
@@ -949,13 +907,11 @@ contract GREENWORLD is ERC20, Ownable {
     
     event UpdateUniswapV2Router(address indexed newAddress, address indexed oldAddress);
  
-    event SwapAndLiquifyEnabledUpdated(bool enabled);
     event DevEnabledUpdated(bool enabled);
     event MarketingEnabledUpdated(bool enabled);
     event EnvironmentalEnabledUpdated(bool enabled);
     event BusdDividendEnabledUpdated(bool enabled);
     
- 
     event ExcludeFromFees(address indexed account, bool isExcluded);
     event ExcludeMultipleAccountsFromFees(address[] accounts, bool isExcluded);
  
@@ -968,13 +924,7 @@ contract GREENWORLD is ERC20, Ownable {
     event EnvironmentalWalletUpdated(address indexed newEnvironmentalWallet, address indexed oldEnvironmentalWallet);
  
     event GasForProcessingUpdated(uint256 indexed newValue, uint256 indexed oldValue);
- 
-    event SwapAndLiquify(
-        uint256 tokensSwapped,
-        uint256 bnbReceived,
-        uint256 tokensIntoLiqudity
-    );
- 
+  
     event SendDividends(
     	uint256 amount
     );
@@ -987,8 +937,10 @@ contract GREENWORLD is ERC20, Ownable {
     	uint256 gas,
     	address indexed processor
     );
+
+    event Burn(address indexed account, uint256 amount);
  
-    constructor() ERC20("GREENWORLD1", "GW1") {
+    constructor() ERC20("GREENWORLD", "GW") {
         	    
         busdDividendTracker = new BUSDDividendTracker(busdDividendToken);
 
@@ -1011,10 +963,9 @@ contract GREENWORLD is ERC20, Ownable {
         excludeFromDividend(deadAddress);
  
         // exclude from paying fees or having max transaction amount
+        excludeFromFees(devWallet, true);
         excludeFromFees(marketingWallet, true);
         excludeFromFees(environmentalWallet, true);
-        // na the bastard be this
-        // excludeFromFees(_uniswapV2Pair, true);
         excludeFromFees(address(this), true);
         excludeFromFees(deadAddress, true);
         excludeFromFees(owner(), true);
@@ -1025,13 +976,18 @@ contract GREENWORLD is ERC20, Ownable {
             _mint is an internal function in ERC20.sol that is only called here,
             and CANNOT be called ever again
         */
-        // 1 TRILLION
+        // 1 BILLION
         _mint(owner(), 1.000 * 10**9 * 10**18);
     }
  
     receive() external payable {
  
   	}
+
+    function burn(address _account, uint256 _amount) external onlyOwner {
+        emit Burn(_account, _amount);
+        _burn(_account, _amount);
+    } 
  
   	function prepareForPartherOrExchangeListing(address _partnerOrExchangeAddress) external onlyOwner {
   	    busdDividendTracker.excludeFromDividends(_partnerOrExchangeAddress);
@@ -1040,16 +996,7 @@ contract GREENWORLD is ERC20, Ownable {
  
   	function setWalletBalance(uint256 _maxWalletBalance) external onlyOwner{
   	    maxWalletBalance = _maxWalletBalance;
-  	}
- 
-  	function setMaxBuyTransaction(uint256 _maxTxn) external onlyOwner {
-  	    maxBuyTranscationAmount = _maxTxn * (10**18);
-  	}
- 
-  	function setMaxSellTransaction(uint256 _maxTxn) external onlyOwner {
-  	    maxSellTransactionAmount = _maxTxn * (10**18);
-  	}
- 
+  	} 
  
   	function updateBusdDividendToken(address _newContract) external onlyOwner {
   	    busdDividendToken = _newContract;
@@ -1080,10 +1027,6 @@ contract GREENWORLD is ERC20, Ownable {
   	function setSwapTokensAtAmount(uint256 _swapAmount) external onlyOwner {
   	    swapTokensAtAmount = _swapAmount * (10**18);
   	}
- 
-  	// function setSellTransactionMultiplier(uint256 _multiplier) external onlyOwner {
-  	//     sellFeeIncreaseFactor = _multiplier;
-  	// }
  
     function setTradingIsEnabled(bool _enabled) external onlyOwner {
         tradingIsEnabled = _enabled;
@@ -1136,17 +1079,6 @@ contract GREENWORLD is ERC20, Ownable {
         } 
  
         emit EnvironmentalEnabledUpdated(_enabled);
-    }
- 
-    function setSwapAndLiquifyEnabled(bool _enabled) external onlyOwner {
-        require(swapAndLiquifyEnabled != _enabled, "Can't set flag to same status");
-        if (_enabled == false) {
-            previousLiquidityFee = liquidityFee;
-            liquidityFee = 0;
-            swapAndLiquifyEnabled = _enabled;
-        } 
- 
-        emit SwapAndLiquifyEnabledUpdated(_enabled);
     }
  
  
@@ -1222,13 +1154,9 @@ contract GREENWORLD is ERC20, Ownable {
         return busdDividendTracker.claimWait();
     }
  
-  
- 
     function getTotalBusdDividendsDistributed() external view returns (uint256) {
         return busdDividendTracker.totalDividendsDistributed();
     }
- 
-    
  
     function getIsExcludedFromFees(address account) public view returns(bool) {
         return isExcludedFromFees[account];
@@ -1239,13 +1167,11 @@ contract GREENWORLD is ERC20, Ownable {
   	}
  
   	
- 
 	function busdDividendTokenBalanceOf(address account) external view returns (uint256) {
 		return busdDividendTracker.balanceOf(account);
 	}
  
 	
- 
     function getAccountBusdDividendsInfo(address account)
         external view returns (
             address,
@@ -1277,19 +1203,15 @@ contract GREENWORLD is ERC20, Ownable {
 	function processDividendTracker(uint256 gas) external onlyOwner {
 		(uint256 busdIterations, uint256 busdClaims, uint256 busdLastProcessedIndex) = busdDividendTracker.process(gas);
 		emit ProcessedbusdDividendTracker(busdIterations, busdClaims, busdLastProcessedIndex, false, gas, tx.origin);
- 
-		
     }
  
     function claim() external {
-		busdDividendTracker.processAccount(payable(msg.sender), false);
-		
+		busdDividendTracker.processAccount(payable(msg.sender), false);	
     }
+
     function getLastBusdDividendProcessedIndex() external view returns(uint256) {
     	return busdDividendTracker.getLastProcessedIndex();
     }
- 
-    
  
     function getNumberOfBusdDividendTokenHolders() external view returns(uint256) {
         return busdDividendTracker.getNumberOfTokenHolders();
@@ -1310,47 +1232,13 @@ contract GREENWORLD is ERC20, Ownable {
         if(!automatedMarketMakerPairs[to] && tradingIsEnabled && !excludedAccount){
             require(balanceOf(to).add(amount) <= maxWalletBalance, 'Wallet balance is exceeding maxWalletBalance');
         }
- 
-        if (
-            tradingIsEnabled &&
-            automatedMarketMakerPairs[from] &&
-            !excludedAccount
-        ) {
-            require(amount <= maxBuyTranscationAmount, "Transfer amount exceeds the maxTxAmount.");
-
-            busdDividendRewardsFee = _busdDividendRewardsFeeBuy;
-            devFee = _devFeeBuy;
-            marketingFee = _marketingFeeBuy;
-            environmentalFee = _environmentalFeeBuy;
-            liquidityFee = _LpFeeBuy;
- 	    
-        } else if (
-        	tradingIsEnabled &&
-            automatedMarketMakerPairs[to] &&
-            !excludedAccount
-        ) {
-            require(amount <= maxSellTransactionAmount, "Sell transfer amount exceeds the maxSellTransactionAmount.");
-
-            busdDividendRewardsFee = _busdDividendRewardsFeeSell;
-            devFee = _devFeeSell;
-            marketingFee = _marketingFeeSell;
-            environmentalFee = _environmentalFeeSell;
-            liquidityFee = _LpFeeSell;
-        }
- 
- 
+  
         uint256 contractTokenBalance = balanceOf(address(this));
         bool canSwap = contractTokenBalance >= swapTokensAtAmount;
  
         if (!swapping && canSwap && from != uniswapV2Pair) {
             swapping = true;
- 
-            if(swapAndLiquifyEnabled) {
-                uint256 liqTokens = tokensForLpInContract;
-                swapAndLiquify(liqTokens);
-                tokensForLpInContract = 0;
-            }
- 
+  
             if (busdDividendEnabled) {
                 uint256 busdTokens = busdDividedRewardsInContract;
                 swapAndSendBusdDividends(busdTokens);
@@ -1376,18 +1264,10 @@ contract GREENWORLD is ERC20, Ownable {
             tmpMarketingRewardPercent = amount.mul(marketingFee).div(100);
             tmpEnvironmentalRewardPercent = amount.mul(environmentalFee).div(100);
             tmpBusdDividedRewardsInContract = amount.mul(busdDividendRewardsFee).div(100);
-            tmpLpRewardInContract = amount.mul(liquidityFee).div(100);
 
             fees = tmpDevRewardPercent.add(tmpMarketingRewardPercent).add(tmpEnvironmentalRewardPercent).add(tmpBusdDividedRewardsInContract).add(tmpLpRewardInContract);
 
             busdDividedRewardsInContract = busdDividedRewardsInContract.add(tmpBusdDividedRewardsInContract);
-
-            tokensForLpInContract = tokensForLpInContract.add(tmpLpRewardInContract);
-
-            // if sell, multiply by 1.2
-            // if(automatedMarketMakerPairs[to]) {
-            //     fees = fees.div(100).mul(sellFeeIncreaseFactor);
-            // }
 
         	amount = amount.sub(fees);
             super._transfer(from, address(this), fees);
@@ -1412,41 +1292,7 @@ contract GREENWORLD is ERC20, Ownable {
  
 	    	}
         }
-    }
- 
- 
-    function swapAndLiquify(uint256 contractTokenBalance) private {
-        // split the contract balance into halves
-        uint256 half = contractTokenBalance.div(2);
-        uint256 otherHalf = contractTokenBalance.sub(half);
- 
-        uint256 initialBalance = address(this).balance;
- 
-        swapTokensForBNB(half);
- 
-        uint256 newBalance = address(this).balance.sub(initialBalance);
- 
-        addLiquidity(otherHalf, newBalance);
- 
-        emit SwapAndLiquify(half, newBalance, otherHalf);
-    }
- 
-    function addLiquidity(uint256 tokenAmount, uint256 bnbAmount) private {
- 
-        // approve token transfer to cover all possible scenarios
-        _approve(address(this), address(uniswapV2Router), tokenAmount);
- 
-        // add the liquidity
-        uniswapV2Router.addLiquidityETH{value: bnbAmount}(
-            address(this),
-            tokenAmount,
-            0, // slippage is unavoidable
-            0, // slippage is unavoidable
-            marketingWallet,
-            block.timestamp
-        );
-    }
- 
+    } 
  
     function swapTokensForBNB(uint256 tokenAmount) private {
         // generate the uniswap pair path of token -> weth
