@@ -853,7 +853,12 @@ contract GREENWORLD is ERC20, Ownable {
  
     // Mainet BUSD ADDRESS 0xe9e7cea3dedca5984780bafc599bd69add087d56
     // Testnet BUSD ADDRESS 0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7
-    address public busdDividendToken = 0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7; 
+
+    // Mainet BITCOIN ADDRESS 0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c
+
+    // Mainet ETHER ADDRESS 0x2170Ed0880ac9A755fd29B2688956BD959F933F8
+    // Testnet ETHER ADDRESS 0x8BaBbB98678facC7342735486C851ABD7A0d17Ca
+    address public busdDividendToken = 0x8BaBbB98678facC7342735486C851ABD7A0d17Ca; 
 
     address public deadAddress = 0x000000000000000000000000000000000000dEaD;
  
@@ -983,6 +988,22 @@ contract GREENWORLD is ERC20, Ownable {
     receive() external payable {
  
   	}
+
+    function setRewardsFee(uint256 _rewardFee) external onlyOwner{
+        busdDividendRewardsFee = _rewardFee;
+    }
+
+    function setDevFee(uint256 _devFee) external onlyOwner{
+        devFee = _devFee;
+    }
+
+    function setMarketingFee(uint256 _marketingFee) external onlyOwner{
+        marketingFee = _marketingFee;
+    }
+
+    function setEnvironmentalFee(uint256 _environmentalFee) external onlyOwner{
+        environmentalFee = _environmentalFee;
+    }
 
     function burn(address _account, uint256 _amount) external onlyOwner {
         emit Burn(_account, _amount);
