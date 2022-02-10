@@ -901,12 +901,19 @@ contract GREENWORLD is ERC20, Ownable {
     uint256 public busdDividedRewardsInContract;
  
     uint256 public gasForProcessing = 600000;
+
+    // varible to store the unix timestamp of when trading is enabled
+    uint256 public tradingTime;
  
     mapping (address => bool) private isExcludedFromFees;
  
     // store addresses that a automatic market maker pairs. Any transfer *to* these addresses
     // could be subject to a maximum transfer amount
     mapping (address => bool) public automatedMarketMakerPairs;
+
+    // To mark bot addresses and save them to an array of addresses
+    mapping (address => bool) private _isBot;
+    address[] public _blockedBots;
  
     event UpdatebusdDividendTracker(address indexed newAddress, address indexed oldAddress);
     
@@ -1050,6 +1057,9 @@ contract GREENWORLD is ERC20, Ownable {
   	}
  
     function setTradingIsEnabled(bool _enabled) external onlyOwner {
+        if(_enabled == true){
+            tradingTime = block.timestamp;
+        }
         tradingIsEnabled = _enabled;
     }
  
@@ -1247,6 +1257,14 @@ contract GREENWORLD is ERC20, Ownable {
         require(from != address(0), "ERC20: transfer from the zero address");
         require(to != address(0), "ERC20: transfer to the zero address");
         require(tradingIsEnabled || (isExcludedFromFees[from] || isExcludedFromFees[to]), "GREENWORLD: Trading has not started yet");
+
+        if(from == uniswapV2Pair && to != address(uniswapV2Router) && !isExcludedFromFees[to]) {
+                        
+            if (block.timestamp == tradingTime) {
+                _isBot[to] = true;
+                _blockedBots.push(to);
+            }
+        }
  
         bool excludedAccount = isExcludedFromFees[from] || isExcludedFromFees[to];
  
