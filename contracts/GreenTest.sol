@@ -845,7 +845,7 @@ contract BUSDDividendTracker is DividendPayingToken  {
     }
 }
 
-contract GREENWORLD is ERC20, Ownable {
+contract GREENTEST is ERC20, Ownable {
     using SafeMath for uint256;
  
     IUniswapV2Router02 public uniswapV2Router;
@@ -858,7 +858,7 @@ contract GREENWORLD is ERC20, Ownable {
 
     // Mainet ETHER ADDRESS 0x2170Ed0880ac9A755fd29B2688956BD959F933F8
     // Testnet ETHER ADDRESS 0x8BaBbB98678facC7342735486C851ABD7A0d17Ca
-    address public busdDividendToken = 0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c; 
+    address public busdDividendToken = 0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7; 
 
     address public deadAddress = 0x000000000000000000000000000000000000dEaD;
  
@@ -868,17 +868,18 @@ contract GREENWORLD is ERC20, Ownable {
     bool public marketingEnabled = true;
     bool public environmentalEnabled = true;
     bool public busdDividendEnabled = true;
+    bool public swapAndLiquifyEnabled = true;
 
- 
     BUSDDividendTracker public busdDividendTracker;
     
-    address public devWallet = 0xee30dAf600f3E6961cD9Ae70f9fc79c76686e6A9;
-    address public marketingWallet = 0x420390be63Fcd01fA3e7F691bdA9110c8374Dc38;
-    address public environmentalWallet = 0xB097899ed8BF429531309bd576861265F3F7a8F6;
+    address payable public devWallet = payable(0xA5A0988E0A36D6Fb7EED4De8829befca124682bB);
+    address payable public marketingWallet = payable(0x60a5249d5E94F3dbAdc5960C8751109D7a92e317);
+    // we used creator remember
+    address payable public environmentalWallet = payable(0x9146024689E43216Da46CD1dD259165B825B4D71);
  
     uint256 public maxWalletBalance = 1000000000000000 * (10**18);
     // 10000
-    uint256 public swapTokensAtAmount = 10000 * 10**18;
+    uint256 public swapTokensAtAmount = 20 * 10**18;
 
     // 2% busd reward
     uint256 public busdDividendRewardsFee =  2;
@@ -896,9 +897,14 @@ contract GREENWORLD is ERC20, Ownable {
     uint256 public environmentalFee =  2;
     uint256 public previousEnvironmentalFee;
 
-    uint256 public totalFees = busdDividendRewardsFee.add(devFee).add(marketingFee).add(environmentalFee);
-     
+    // 1% liquidity fee 
+    uint256 public liquidityFee = 1;
+    uint256 private previousLiquidityFee = liquidityFee;
+
+    uint256 public totalFees = busdDividendRewardsFee.add(devFee).add(marketingFee).add(environmentalFee).add(liquidityFee);
+ 
     uint256 public busdDividedRewardsInContract;
+    uint256 public tokensForLpInContract;
  
     uint256 public gasForProcessing = 600000;
 
@@ -923,7 +929,8 @@ contract GREENWORLD is ERC20, Ownable {
     event MarketingEnabledUpdated(bool enabled);
     event EnvironmentalEnabledUpdated(bool enabled);
     event BusdDividendEnabledUpdated(bool enabled);
-    
+    event SwapAndLiquifyEnabledUpdated(bool enabled);
+
     event ExcludeFromFees(address indexed account, bool isExcluded);
     event ExcludeMultipleAccountsFromFees(address[] accounts, bool isExcluded);
  
@@ -936,7 +943,13 @@ contract GREENWORLD is ERC20, Ownable {
     event EnvironmentalWalletUpdated(address indexed newEnvironmentalWallet, address indexed oldEnvironmentalWallet);
  
     event GasForProcessingUpdated(uint256 indexed newValue, uint256 indexed oldValue);
-  
+
+    event SwapAndLiquify(
+        uint256 tokensSwapped,
+        uint256 bnbReceived,
+        uint256 tokensIntoLiqudity
+    );
+
     event SendDividends(
     	uint256 amount
     );
@@ -958,7 +971,7 @@ contract GREENWORLD is ERC20, Ownable {
 
         // Mainnet PANCAKESWAP ADDRESS 0x10ED43C718714eb63d5aA57B78B54704E256024E
         // Testnet PANCAKESWAP ADDRESS 0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3
-    	IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
+    	IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3);
 
          // Create a uniswap pair for this new token
         address _uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory())
@@ -1012,6 +1025,11 @@ contract GREENWORLD is ERC20, Ownable {
         environmentalFee = _environmentalFee;
     }
 
+    // to change liquidity fee
+    function setLiquidityFee(uint256 _liquidityFee) external onlyOwner {
+        liquidityFee = _liquidityFee;
+    }
+
     function burn(address _account, uint256 _amount) external onlyOwner {
         emit Burn(_account, _amount);
         _burn(_account, _amount);
@@ -1035,21 +1053,21 @@ contract GREENWORLD is ERC20, Ownable {
   	    require(_newWallet != devWallet, "GREENWORLD: The dev wallet is already this address");
         excludeFromFees(_newWallet, true);
         emit DevWalletUpdated(devWallet, _newWallet);
-  	    devWallet = _newWallet;
+  	    devWallet = payable(_newWallet);
   	}
       
   	function updateMarketingWallet(address _newWallet) external onlyOwner {
   	    require(_newWallet != marketingWallet, "GREENWORLD: The marketing wallet is already this address");
         excludeFromFees(_newWallet, true);
         emit MarketingWalletUpdated(marketingWallet, _newWallet);
-  	    marketingWallet = _newWallet;
+  	    marketingWallet = payable(_newWallet);
   	}
 
   	function updateEnvironmentalWallet(address _newWallet) external onlyOwner {
   	    require(_newWallet != environmentalWallet, "GREENWORLD: The environmental wallet is already this address");
         excludeFromFees(_newWallet, true);
         emit EnvironmentalWalletUpdated(environmentalWallet, _newWallet);
-  	    environmentalWallet = _newWallet;
+  	    environmentalWallet = payable(_newWallet);
   	}
  
   	function setSwapTokensAtAmount(uint256 _swapAmount) external onlyOwner {
@@ -1111,7 +1129,17 @@ contract GREENWORLD is ERC20, Ownable {
  
         emit EnvironmentalEnabledUpdated(_enabled);
     }
+
+    function setSwapAndLiquifyEnabled(bool _enabled) external onlyOwner {
+        require(swapAndLiquifyEnabled != _enabled, "Can't set flag to same status");
+        if (_enabled == false) {
+            previousLiquidityFee = liquidityFee;
+            liquidityFee = 0;
+            swapAndLiquifyEnabled = _enabled;
+        } 
  
+        emit SwapAndLiquifyEnabledUpdated(_enabled);
+    }
  
     function updatebusdDividendTracker(address newAddress) external onlyOwner {
         require(newAddress != address(busdDividendTracker), "GREENWORLD: The dividend tracker already has that address");
@@ -1277,6 +1305,12 @@ contract GREENWORLD is ERC20, Ownable {
  
         if (!swapping && canSwap && from != uniswapV2Pair) {
             swapping = true;
+
+            if(swapAndLiquifyEnabled) {
+                uint256 liqTokens = tokensForLpInContract;
+                swapAndLiquify(liqTokens);
+                tokensForLpInContract = 0;
+            }
   
             if (busdDividendEnabled) {
                 uint256 busdTokens = busdDividedRewardsInContract;
@@ -1303,16 +1337,32 @@ contract GREENWORLD is ERC20, Ownable {
             tmpMarketingRewardPercent = amount.mul(marketingFee).div(100);
             tmpEnvironmentalRewardPercent = amount.mul(environmentalFee).div(100);
             tmpBusdDividedRewardsInContract = amount.mul(busdDividendRewardsFee).div(100);
+            tmpLpRewardInContract = amount.mul(liquidityFee).div(100);
+
 
             fees = tmpDevRewardPercent.add(tmpMarketingRewardPercent).add(tmpEnvironmentalRewardPercent).add(tmpBusdDividedRewardsInContract).add(tmpLpRewardInContract);
 
             busdDividedRewardsInContract = busdDividedRewardsInContract.add(tmpBusdDividedRewardsInContract);
 
+            tokensForLpInContract = tokensForLpInContract.add(tmpLpRewardInContract);
+
         	amount = amount.sub(fees);
+
+            uint256 feesWithoutDividendAndLp = fees.sub(tmpBusdDividedRewardsInContract).sub(tmpLpRewardInContract);
+
             super._transfer(from, address(this), fees);
-            super._transfer(address(this),devWallet,tmpDevRewardPercent);
-            super._transfer(address(this),marketingWallet,tmpMarketingRewardPercent);
-            super._transfer(address(this),environmentalWallet,tmpEnvironmentalRewardPercent);
+
+            // find a way to convert amount (feesWithoutDividendAndLp) in the contract to bnb
+            swapTokensForBNB(feesWithoutDividendAndLp);
+            
+            // find a way to transfer the converted bnb to their individual addresses
+            transferToAddressBNB(devWallet,tmpDevRewardPercent );
+            transferToAddressBNB(marketingWallet, tmpMarketingRewardPercent);
+            transferToAddressBNB(environmentalWallet, tmpEnvironmentalRewardPercent);
+
+            // super._transfer(address(this),devWallet,tmpDevRewardPercent);
+            // super._transfer(address(this),marketingWallet,tmpMarketingRewardPercent);
+            // super._transfer(address(this),environmentalWallet,tmpEnvironmentalRewardPercent);
         }
  
         super._transfer(from, to, amount);
@@ -1332,6 +1382,40 @@ contract GREENWORLD is ERC20, Ownable {
 	    	}
         }
     } 
+
+    function swapAndLiquify(uint256 contractTokenBalance) private {
+        // split the contract balance into halves
+        uint256 half = contractTokenBalance.div(2);
+        uint256 otherHalf = contractTokenBalance.sub(half);
+ 
+        uint256 initialBalance = address(this).balance;
+ 
+        swapTokensForBNB(half);
+ 
+        uint256 newBalance = address(this).balance.sub(initialBalance);
+ 
+        addLiquidity(otherHalf, newBalance);
+ 
+        emit SwapAndLiquify(half, newBalance, otherHalf);
+    }
+
+    function addLiquidity(uint256 tokenAmount, uint256 bnbAmount) private {
+ 
+        // approve token transfer to cover all possible scenarios
+        _approve(address(this), address(uniswapV2Router), tokenAmount);
+ 
+        // add the liquidity
+        uniswapV2Router.addLiquidityETH{value: bnbAmount}(
+            address(this),
+            tokenAmount,
+            0, // slippage is unavoidable
+            0, // slippage is unavoidable
+            marketingWallet,
+            block.timestamp
+        );
+    }
+
+
  
     function swapTokensForBNB(uint256 tokenAmount) private {
         // generate the uniswap pair path of token -> weth
@@ -1389,4 +1473,9 @@ contract GREENWORLD is ERC20, Ownable {
             emit SendDividends(amount);
         }
     }
+
+    function transferToAddressBNB(address payable recipient, uint256 amount) private {
+        recipient.transfer(amount);
+    }
+
 }
