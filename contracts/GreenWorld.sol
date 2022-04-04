@@ -171,31 +171,74 @@ contract ERC20 is Context, IERC20 {
         _decimals = 18;
     }
  
+ 
+ 
+ 
+    // Returns the name of the token.
+    
     function name() public view virtual returns (string memory) {
         return _name;
     }
  
+ 
+ 
+ 
+    // Returns the symbol of the token.
+    
     function symbol() public view virtual returns (string memory) {
         return _symbol;
     }
  
+ 
+ 
+ 
+    // Returns the number of decimals of the token.
+    
     function decimals() public view virtual returns (uint8) {
         return _decimals;
     }
  
+ 
+ 
+ 
+    // Returns the total number of tokens in existence.
+    
     function totalSupply() public view virtual override returns (uint256) {
         return _totalSupply;
     }
  
+ 
+ 
+ 
+    // Returns the amount of tokens that `account` has.
+    
     function balanceOf(address account) public view virtual override returns (uint256) {
         return _balances[account];
     }
  
+ 
+ 
+ 
+    /*
+    * @dev:
+    * {Transfer()} reference documentation for {_transfer()} on line 256.
+    */
+    
     function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
  
+ 
+ 
+ 
+    /*
+    * @dev:
+    * {allowance()} returns allowances 
+    *
+    * Continue here tomorrow.....
+    */
+    
     function allowance(address owner, address spender) public view virtual override returns (uint256) {
         return _allowances[owner][spender];
     }
