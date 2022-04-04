@@ -107,7 +107,14 @@ abstract contract Ownable is Context {
         _owner = newOwner;
     }
 }
- 
+
+
+
+
+/*
+* IERC20 Interface: See https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/IERC20.sol for more details.
+*/
+
 interface IERC20 {
     function totalSupply() external view returns (uint256);
  
@@ -125,13 +132,32 @@ interface IERC20 {
  
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
- 
+
+
+
+
+/*
+* ERC20 Contract Implementing IERC20 Interface: See https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/ERC20.sol for more details.
+*/
+
 contract ERC20 is Context, IERC20 {
+
+    // Using for.
+
     using SafeMath for uint256;
+    
+    
+    // Mapping addresses to their amount `balances`.
  
     mapping (address => uint256) private _balances;
+    
+    
+    // Mapping addressess to a map of addresses to amounts in `allowances`.
  
     mapping (address => mapping (address => uint256)) private _allowances;
+    
+    
+    // Token data.
  
     uint256 private _totalSupply;
  
