@@ -612,27 +612,41 @@ contract DividendPayingToken is ERC20, IDividendPayingToken, IDividendPayingToke
  
  
  
- /*
- * I DO NOT UNDERSTAND THE LOGIC HERE.
- */
+  // Returns the dividend assigned to the `_owner`.
  
   function dividendOf(address _owner) public view override returns(uint256) {
     return withdrawableDividendOf(_owner);
   }
  
+ 
+ 
+ 
+  // Returns the balance of the `accumulativeDividendOf` the `_owner` after the `withdrawnDividends` of `_owner` are subtracted.
+  // Basically returns the amount of dividends that `_owner` can withdraw.
+ 
   function withdrawableDividendOf(address _owner) public view override returns(uint256) {
     return accumulativeDividendOf(_owner).sub(withdrawnDividends[_owner]);
   }
+ 
+ 
+ 
+ 
+  // Returns the withdrawn dividends from the `withdrawnDividends` mapped the `_owner`.
  
   function withdrawnDividendOf(address _owner) public view override returns(uint256) {
     return withdrawnDividends[_owner];
   }
  
  
+ 
+ 
   function accumulativeDividendOf(address _owner) public view override returns(uint256) {
     return magnifiedDividendPerShare.mul(balanceOf(_owner)).toInt256Safe()
       .add(magnifiedDividendCorrections[_owner]).toUint256Safe() / magnitude;
   }
+ 
+ 
+ 
  
   function _transfer(address from, address to, uint256 value) internal virtual override {
     require(false);
@@ -642,6 +656,9 @@ contract DividendPayingToken is ERC20, IDividendPayingToken, IDividendPayingToke
     magnifiedDividendCorrections[to] = magnifiedDividendCorrections[to].sub(_magCorrection);
   }
  
+ 
+ 
+ 
   function _mint(address account, uint256 value) internal override {
     super._mint(account, value);
  
@@ -649,12 +666,18 @@ contract DividendPayingToken is ERC20, IDividendPayingToken, IDividendPayingToke
       .sub( (magnifiedDividendPerShare.mul(value)).toInt256Safe() );
   }
  
+ 
+ 
+ 
   function _burn(address account, uint256 value) internal override {
     super._burn(account, value);
  
     magnifiedDividendCorrections[account] = magnifiedDividendCorrections[account]
       .add( (magnifiedDividendPerShare.mul(value)).toInt256Safe() );
   }
+ 
+ 
+ 
  
   function _setBalance(address account, uint256 newBalance) internal {
     uint256 currentBalance = balanceOf(account);
@@ -668,9 +691,6 @@ contract DividendPayingToken is ERC20, IDividendPayingToken, IDividendPayingToke
     }
   }
   
- /*
- * I DO NOT UNDERSTAND THE LOGIC HERE.
- */
 }
  
  
