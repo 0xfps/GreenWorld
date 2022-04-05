@@ -20,6 +20,7 @@ abstract contract Context {
         this; // silence state mutability warning without generating bytecode - see https://github.com/ethereum/solidity/issues/2691
         return msg.data;
     }
+    
 }
 
 
@@ -106,6 +107,7 @@ abstract contract Ownable is Context {
         emit OwnershipTransferred(_owner, newOwner);
         _owner = newOwner;
     }
+    
 }
 
 
@@ -117,6 +119,7 @@ abstract contract Ownable is Context {
 */
 
 interface IERC20 {
+
     function totalSupply() external view returns (uint256);
  
     function balanceOf(address account) external view returns (uint256);
@@ -132,6 +135,7 @@ interface IERC20 {
     event Transfer(address indexed from, address indexed to, uint256 value);
  
     event Approval(address indexed owner, address indexed spender, uint256 value);
+    
 }
 
 
@@ -223,7 +227,7 @@ contract ERC20 is Context, IERC20 {
  
     /*
     * @dev:
-    * {transfer()} reference comments for {_transfer()} on line 317.
+    * {transfer()} reference comments for {_transfer()} on line 321.
     */
     
     function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
@@ -248,7 +252,7 @@ contract ERC20 is Context, IERC20 {
  
     /*
     * @dev:
-    * {approve()} reference comments for {_approve()} on line 383.
+    * {approve()} reference comments for {_approve()} on line 387.
     */
     
     function approve(address spender, uint256 amount) public virtual override returns (bool) {
@@ -261,7 +265,7 @@ contract ERC20 is Context, IERC20 {
  
     /*
     * @dev:
-    * {transferFrom()} reference comments for {_transfer()} and {_approve()} on lines 317 and 383.
+    * {transferFrom()} reference comments for {_transfer()} and {_approve()} on lines 321 and 387.
     */
     
     function transferFrom(address sender, address recipient, uint256 amount) public virtual override returns (bool) {
@@ -275,7 +279,7 @@ contract ERC20 is Context, IERC20 {
  
     /*
     * @dev:
-    * {increaseAllowance()} reference comments for {_approve()} on line 383.
+    * {increaseAllowance()} reference comments for {_approve()} on line 387.
     *
     * `amount` used in {increaseAllowance()} passed here is an addition to the already existing `_allowances`.
     */
@@ -290,7 +294,7 @@ contract ERC20 is Context, IERC20 {
  
     /*
     * @dev:
-    * {decreaseAllowance()} reference comments for {_approve()} on line 383.
+    * {decreaseAllowance()} reference comments for {_approve()} on line 387.
     *
     * `amount` used in {increaseAllowance()} passed here is an reduction to the already existing `_allowances`.
     */
@@ -305,7 +309,7 @@ contract ERC20 is Context, IERC20 {
  
     /*
     * @dev:
-    * {_transfer()} - transfers `amount` of tokens from the `sender` msgSender() :: [reference line 10 and 230] :: to the `recipient` address.
+    * {_transfer()} - transfers `amount` of tokens from the `sender` msgSender() :: [reference line 10 and 233] :: to the `recipient` address.
     *
     * Decreases the `_balances` of the `sender` by amount.
     *
@@ -403,71 +407,133 @@ contract ERC20 is Context, IERC20 {
     // Unimplemented function.
     
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual { }
+    
 }
  
  
  
  
- // Start...
+// New Interface.
  
 interface IDividendPayingToken {
+
   function dividendOf(address _owner) external view returns(uint256);
  
+ 
   function withdrawDividend() external;
+ 
  
   event DividendsDistributed(
     address indexed from,
     uint256 weiAmount
   );
  
+ 
   event DividendWithdrawn(
     address indexed to,
     uint256 weiAmount
   );
+  
 }
- 
+
+
+
+
+// Another Interface.
+
 interface IDividendPayingTokenOptional {
+
   function withdrawableDividendOf(address _owner) external view returns(uint256);
+  
  
   function withdrawnDividendOf(address _owner) external view returns(uint256);
+  
  
   function accumulativeDividendOf(address _owner) external view returns(uint256);
+  
 }
  
+ 
+ 
+ 
+/*
+* @dev:
+* 
+* Inherits ERC20 :: [reference line 149] :: contract.
+*
+* Inherits IDividendPayingToken :: [reference line 418] :: interface.
+*
+* Inherits IDividendPayingTokenOptional :: [reference line 444] :: interface.
+*
+* Inherits Ownable :: [reference line 29] :: contract.
+*/
+
 contract DividendPayingToken is ERC20, IDividendPayingToken, IDividendPayingTokenOptional, Ownable {
   using SafeMath for uint256;
   using SafeMathUint for uint256;
   using SafeMathInt for int256;
  
-  uint256 constant internal magnitude = 2**128;
+  uint256 constant internal magnitude = 2 ** 128;
  
   uint256 internal magnifiedDividendPerShare;
   uint256 internal lastAmount;
+ 
+ 
+  // Token for dividends.
  
   address public dividendToken;
  
  
   mapping(address => int256) internal magnifiedDividendCorrections;
   mapping(address => uint256) internal withdrawnDividends;
+  
+  // _isAuth mapping for authorizations.
+  
   mapping(address => bool) _isAuth;
+ 
  
   uint256 public totalDividendsDistributed;
  
+ 
+  // Ensures that the caller is authorized.
+  
   modifier onlyAuth() {
     require(_isAuth[msg.sender], "Auth: caller is not the authorized");
     _;
   }
  
+ 
+ 
+ 
+  /*
+  * @dev:
+  * Initializes the constructor with a `_name`, `_symbol`, `_token` address, and instantiates an ERC20 token with the data given.
+  *
+  * Assigns the dividedToken to the token address.
+  */
+  
   constructor(string memory _name, string memory _symbol, address _token) ERC20(_name, _symbol) {
     dividendToken = _token;
     _isAuth[msg.sender] = true;
   }
  
+ 
+ 
+  // Sets the `_isAuth` mapping for the `account` to true, thereby authorizing the account.
+  
   function setAuth(address account) external onlyOwner{
       _isAuth[account] = true;
   }
  
  
+ 
+ 
+  /*
+  * @dev:
+  * Takes the `amount` and multiplies it by the magnitude and divides by the totalSupply.
+  * Emits the {DividendsDistributed} event.
+  */
+  
   function distributeDividends(uint256 amount) public onlyOwner{
     require(totalSupply() > 0);
  
@@ -481,20 +547,56 @@ contract DividendPayingToken is ERC20, IDividendPayingToken, IDividendPayingToke
     }
   }
  
+ 
+ 
+ 
+  // Reference line 585.
+  
   function withdrawDividend() public virtual override {
     _withdrawDividendOfUser(payable(msg.sender));
   }
  
+ 
+ 
+ 
+  // Sets the new `dividendToken` to `newToken` address.
+  
   function setDividendTokenAddress(address newToken) external virtual onlyOwner{
       dividendToken = newToken;
   }
  
+ 
+ 
+ 
+  /*
+  * @dev:
+  * {_withdrawDividendOfUser()}
+  *
+  * STEPS:
+  * a. Returns the `_withdrawableDividend` [from the withdrawableDividendOf() function].
+  * b. Adds the `_withdrawableDividend` to the already `withdrawnDividends` mapping of the user if the `_withdrawableDividend` is > 0.
+  * c. Implements the IERC20 interface at the address of the `dividendToken` and transfers the `_withdrawableDividend` to the `user`, this returns a bool [reference IERC20 transfer() function].
+  * d. Then the `_withdrawableDividend` is subtracted from the `withdrawnDividends` mapped to the `user` and returns the `_withdrawableDividend`.
+  * e. If false, it returns 0.
+  *
+  * How do you add to dividends?
+  */
+  
   function _withdrawDividendOfUser(address payable user) internal returns (uint256) {
     uint256 _withdrawableDividend = withdrawableDividendOf(user);
     if (_withdrawableDividend > 0) {
       withdrawnDividends[user] = withdrawnDividends[user].add(_withdrawableDividend);
       emit DividendWithdrawn(user, _withdrawableDividend);
       bool success = IERC20(dividendToken).transfer(user, _withdrawableDividend);
+      
+      /*
+      * But I guess I coulda just used
+      * TokenContractName variable_name = new TokenContractName(); 						## For new test deployment.
+      * OR
+      * TokenContractName variable_name = TokenContractName(mainnet/testnet deployed address of Token); 	## For calling an already deployed contract.
+      *
+      * variable_name.transfer(user, _withdrawableDividend);							## Works same as line 590. 😉
+      */
  
       if(!success) {
         withdrawnDividends[user] = withdrawnDividends[user].sub(_withdrawableDividend);
@@ -507,6 +609,12 @@ contract DividendPayingToken is ERC20, IDividendPayingToken, IDividendPayingToke
     return 0;
   }
  
+ 
+ 
+ 
+ /*
+ * I DO NOT UNDERSTAND THE LOGIC HERE.
+ */
  
   function dividendOf(address _owner) public view override returns(uint256) {
     return withdrawableDividendOf(_owner);
@@ -559,13 +667,21 @@ contract DividendPayingToken is ERC20, IDividendPayingToken, IDividendPayingToke
       _burn(account, burnAmount);
     }
   }
+  
+ /*
+ * I DO NOT UNDERSTAND THE LOGIC HERE.
+ */
 }
+ 
+ 
+ 
  
 ////////////////////////////////
 ///////// Interfaces ///////////
 ////////////////////////////////
  
 interface IUniswapV2Factory {
+
     event PairCreated(address indexed token0, address indexed token1, address pair, uint);
  
     function feeTo() external view returns (address);
@@ -579,9 +695,14 @@ interface IUniswapV2Factory {
  
     function setFeeTo(address) external;
     function setFeeToSetter(address) external;
+    
 }
  
+ 
+ 
+ 
 interface IUniswapV2Pair {
+
     event Approval(address indexed owner, address indexed spender, uint value);
     event Transfer(address indexed from, address indexed to, uint value);
  
@@ -632,6 +753,9 @@ interface IUniswapV2Pair {
     function initialize(address, address) external;
 }
  
+ 
+ 
+ 
 interface IUniswapV2Router01 {
     function factory() external pure returns (address);
     function WETH() external pure returns (address);
@@ -656,6 +780,9 @@ interface IUniswapV2Router01 {
     function getAmountsIn(uint amountOut, address[] calldata path) external view returns (uint[] memory amounts);
 }
  
+ 
+ 
+ 
 interface IUniswapV2Router02 is IUniswapV2Router01 {
     function removeLiquidityETHSupportingFeeOnTransferTokens( address token, uint liquidity, uint amountTokenMin, uint amountETHMin, address to, uint deadline ) external returns (uint amountETH); 
     function removeLiquidityETHWithPermitSupportingFeeOnTransferTokens( address token, uint liquidity, uint amountTokenMin, uint amountETHMin, address to, uint deadline, bool approveMax, uint8 v, bytes32 r, bytes32 s ) external returns (uint amountETH); 
@@ -666,6 +793,9 @@ interface IUniswapV2Router02 is IUniswapV2Router01 {
     function swapExactTokensForETHSupportingFeeOnTransferTokens( uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline ) external; 
  
 }
+ 
+ 
+ 
  
 ////////////////////////////////
 ////////// Libraries ///////////
@@ -808,6 +938,9 @@ library SafeMath {
     }
 }
  
+ 
+ 
+ 
 library SafeMathInt {
   function mul(int256 a, int256 b) internal pure returns (int256) {
     // Prevent overflow when multiplying INT256_MIN with -1
@@ -845,6 +978,9 @@ library SafeMathInt {
   }
 }
  
+ 
+ 
+ 
 library SafeMathUint {
   function toInt256Safe(uint256 a) internal pure returns (int256) {
     int256 b = int256(a);
@@ -852,6 +988,9 @@ library SafeMathUint {
     return b;
   }
 }
+ 
+ 
+ 
  
 ////////////////////////////////
 /////////// Tokens /////////////
