@@ -112,7 +112,8 @@ abstract contract Ownable is Context {
 
 
 /*
-* IERC20 Interface: See https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/IERC20.sol for more details.
+* IERC20 Interface: 
+* See https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/IERC20.sol for more details.
 */
 
 interface IERC20 {
@@ -137,7 +138,8 @@ interface IERC20 {
 
 
 /*
-* ERC20 Contract Implementing IERC20 Interface: See https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/ERC20.sol for more details.
+* ERC20 Contract Implementing IERC20 Interface: 
+* See https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/ERC20.sol for more details.
 */
 
 contract ERC20 is Context, IERC20 {
@@ -221,7 +223,7 @@ contract ERC20 is Context, IERC20 {
  
     /*
     * @dev:
-    * {Transfer()} reference documentation for {_transfer()} on line 256.
+    * {transfer()} reference comments for {_transfer()} on line 317.
     */
     
     function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
@@ -234,36 +236,84 @@ contract ERC20 is Context, IERC20 {
  
     /*
     * @dev:
-    * {allowance()} returns allowances 
-    *
-    * Continue here tomorrow.....
+    * {allowance()} returns allowances that the `spender` can spend on behalf of the `owner`.
     */
     
     function allowance(address owner, address spender) public view virtual override returns (uint256) {
         return _allowances[owner][spender];
     }
  
+ 
+ 
+ 
+    /*
+    * @dev:
+    * {approve()} reference comments for {_approve()} on line 383.
+    */
+    
     function approve(address spender, uint256 amount) public virtual override returns (bool) {
         _approve(_msgSender(), spender, amount);
         return true;
     }
  
+ 
+ 
+ 
+    /*
+    * @dev:
+    * {transferFrom()} reference comments for {_transfer()} and {_approve()} on lines 317 and 383.
+    */
+    
     function transferFrom(address sender, address recipient, uint256 amount) public virtual override returns (bool) {
         _transfer(sender, recipient, amount);
         _approve(sender, _msgSender(), _allowances[sender][_msgSender()].sub(amount, "ERC20: transfer amount exceeds allowance"));
         return true;
     }
  
+ 
+ 
+ 
+    /*
+    * @dev:
+    * {increaseAllowance()} reference comments for {_approve()} on line 383.
+    *
+    * `amount` used in {increaseAllowance()} passed here is an addition to the already existing `_allowances`.
+    */
+    
     function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
         _approve(_msgSender(), spender, _allowances[_msgSender()][spender].add(addedValue));
         return true;
     }
  
+ 
+ 
+ 
+    /*
+    * @dev:
+    * {decreaseAllowance()} reference comments for {_approve()} on line 383.
+    *
+    * `amount` used in {increaseAllowance()} passed here is an reduction to the already existing `_allowances`.
+    */
+    
     function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
         _approve(_msgSender(), spender, _allowances[_msgSender()][spender].sub(subtractedValue, "ERC20: decreased allowance below zero"));
         return true;
     }
  
+ 
+ 
+ 
+    /*
+    * @dev:
+    * {_transfer()} - transfers `amount` of tokens from the `sender` msgSender() :: [reference line 10 and 230] :: to the `recipient` address.
+    *
+    * Decreases the `_balances` of the `sender` by amount.
+    *
+    * Increases the `_balances` of the `recipient` by amount.
+    *
+    * Emits a {Transfer()} event.
+    */
+    
     function _transfer(address sender, address recipient, uint256 amount) internal virtual {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
@@ -275,6 +325,18 @@ contract ERC20 is Context, IERC20 {
         emit Transfer(sender, recipient, amount);
     }
  
+ 
+ 
+ 
+    /*
+    * @dev:
+    * {_mint()} adds an `amount` of tokens to the `_totalSupply` :: [reference line 164] ::
+    *
+    * Increases the `_balances` of te `account` by the `amount`.
+    *
+    * Emits a {Transfer} event.
+    */
+    
     function _mint(address account, uint256 amount) internal virtual {
         require(account != address(0), "ERC20: mint to the zero address");
  
@@ -285,6 +347,18 @@ contract ERC20 is Context, IERC20 {
         emit Transfer(address(0), account, amount);
     }
  
+ 
+ 
+ 
+    /*
+    * @dev:
+    * {_burn()} reduces the `_totalSupply` :: [reference line 164] :: by an `amount` of tokens
+    *
+    * Decreases the `_balances` of te `account` by the `amount`.
+    *
+    * Emits a {Transfer} event.
+    */
+    
     function _burn(address account, uint256 amount) internal virtual {
         require(account != address(0), "ERC20: burn from the zero address");
  
@@ -295,6 +369,17 @@ contract ERC20 is Context, IERC20 {
         emit Transfer(account, address(0), amount);
     }
  
+ 
+ 
+ 
+    /*
+    * @dev:
+    *
+    * {approve()} assigns an `amount` as an allowance to the `spender` for `spender` to use on behalf of the `owner`.
+    *
+    * Emits an {Approval} event.
+    */
+    
     function _approve(address owner, address spender, uint256 amount) internal virtual {
         require(owner != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
@@ -303,13 +388,27 @@ contract ERC20 is Context, IERC20 {
         emit Approval(owner, spender, amount);
     }
  
+ 
+ 
+ 
+    // Changes the decimals of the token.
+    
     function _setupDecimals(uint8 decimals_) internal virtual {
         _decimals = decimals_;
     }
  
+ 
+ 
+ 
+    // Unimplemented function.
+    
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual { }
 }
  
+ 
+ 
+ 
+ // Start...
  
 interface IDividendPayingToken {
   function dividendOf(address _owner) external view returns(uint256);
