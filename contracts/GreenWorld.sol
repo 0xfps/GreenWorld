@@ -1145,10 +1145,13 @@ library SafeMathUint {
 contract BUSDDividendTracker is DividendPayingToken  {
 
     using SafeMath for uint256;
+    
     using SafeMathInt for int256;
+    
     using IterableMapping for IterableMapping.Map;
  
     IterableMapping.Map private tokenHoldersMap;
+    
     uint256 public lastProcessedIndex;
  
     mapping (address => bool) public excludedFromDividends;
@@ -1156,12 +1159,17 @@ contract BUSDDividendTracker is DividendPayingToken  {
     mapping (address => uint256) public lastClaimTimes;
  
     uint256 public claimWait;
+    
     uint256 public minimumTokenBalanceForDividends;
  
     event ExcludeFromDividends(address indexed account);
+    
     event ClaimWaitUpdated(uint256 indexed newValue, uint256 indexed oldValue);
  
     event Claim(address indexed account, uint256 amount, bool indexed automatic);
+ 
+ 
+ 
  
     constructor(address _dividentToken) DividendPayingToken("GREENWORLD_Busd_Dividend_Tracker", "GREENWORLD_Busd_Dividend_Tracker",_dividentToken) {
         // Change to 3600
@@ -1169,22 +1177,37 @@ contract BUSDDividendTracker is DividendPayingToken  {
         minimumTokenBalanceForDividends = 20 * (10**18); //must hold 20+ tokens
     }
  
+ 
+ 
+ 
     function _transfer(address, address, uint256) pure internal override {
         require(false, "GREENWORLD_Busd_Dividend_Tracker: No transfers allowed");
     }
+ 
+ 
+ 
  
     function withdrawDividend() pure public override {
         require(false, "GREENWORLD_Busd_Dividend_Tracker: withdrawDividend disabled. Use the 'claim' function on the main GREENWORLD contract.");
     }
  
+ 
+ 
+ 
     function setDividendTokenAddress(address newToken) external override onlyOwner {
       dividendToken = newToken;
     }
+    
+    
+    
  
     function updateMinimumTokenBalanceForDividends(uint256 _newMinimumBalance) external onlyOwner {
         require(_newMinimumBalance != minimumTokenBalanceForDividends, "New mimimum balance for dividend cannot be same as current minimum balance");
         minimumTokenBalanceForDividends = _newMinimumBalance * (10**18);
     }
+ 
+ 
+ 
  
     function excludeFromDividends(address account) external onlyOwner {
     	require(!excludedFromDividends[account]);
@@ -1195,6 +1218,9 @@ contract BUSDDividendTracker is DividendPayingToken  {
  
     	emit ExcludeFromDividends(account);
     }
+    
+    
+    
  
     function updateClaimWait(uint256 newClaimWait) external onlyOwner {
         // 3600 to 84600
@@ -1204,13 +1230,21 @@ contract BUSDDividendTracker is DividendPayingToken  {
         claimWait = newClaimWait;
     }
  
+ 
+ 
+ 
     function getLastProcessedIndex() external view returns(uint256) {
     	return lastProcessedIndex;
     }
  
+ 
+ 
+ 
     function getNumberOfTokenHolders() external view returns(uint256) {
         return tokenHoldersMap.keys.length;
     }
+ 
+ 
  
  
     function getAccount(address _account)
@@ -1243,7 +1277,6 @@ contract BUSDDividendTracker is DividendPayingToken  {
             }
         }
  
- 
         withdrawableDividends = withdrawableDividendOf(account);
         totalDividends = accumulativeDividendOf(account);
  
@@ -1257,6 +1290,9 @@ contract BUSDDividendTracker is DividendPayingToken  {
                                                     nextClaimTime.sub(block.timestamp) :
                                                     0;
     }
+ 
+ 
+ 
  
     function getAccountAtIndex(uint256 index)
         public view returns (
@@ -1276,6 +1312,9 @@ contract BUSDDividendTracker is DividendPayingToken  {
  
         return getAccount(account);
     }
+    
+    
+    
  
     function canAutoClaim(uint256 lastClaimTime) private view returns (bool) {
     	if(lastClaimTime > block.timestamp)  {
@@ -1284,6 +1323,9 @@ contract BUSDDividendTracker is DividendPayingToken  {
  
     	return block.timestamp.sub(lastClaimTime) >= claimWait;
     }
+    
+    
+    
  
     function setBalance(address payable account, uint256 newBalance) external onlyOwner {
     	if(excludedFromDividends[account]) {
@@ -1301,6 +1343,9 @@ contract BUSDDividendTracker is DividendPayingToken  {
  
     	processAccount(account, true);
     }
+ 
+ 
+ 
  
     function process(uint256 gas) public returns (uint256, uint256, uint256) {
     	uint256 numberOfTokenHolders = tokenHoldersMap.keys.length;
@@ -1348,6 +1393,9 @@ contract BUSDDividendTracker is DividendPayingToken  {
  
     	return (iterations, claims, lastProcessedIndex);
     }
+    
+    
+    
  
     function processAccount(address payable account, bool automatic) public onlyOwner returns (bool) {
         uint256 amount = _withdrawDividendOfUser(account);
@@ -1360,21 +1408,32 @@ contract BUSDDividendTracker is DividendPayingToken  {
  
     	return false;
     }
+    
 }
 
+
+
+
+// Actual Token.
+
 contract GREENWORLD is ERC20, Ownable {
+
     using SafeMath for uint256;
  
+    // For liquidity.
+    
     IUniswapV2Router02 public uniswapV2Router;
+    
     address public immutable uniswapV2Pair;
  
-    // Mainet BUSD ADDRESS 0xe9e7cea3dedca5984780bafc599bd69add087d56
-    // Testnet BUSD ADDRESS 0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7
+    // Mainet BUSD ADDRESS 0xe9e7cea3dedca5984780bafc599bd69add087d56.
+    // Testnet BUSD ADDRESS 0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7.
 
-    // Mainet BITCOIN ADDRESS 0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c
+    // Mainet BITCOIN ADDRESS 0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c.
 
-    // Mainet ETHER ADDRESS 0x2170Ed0880ac9A755fd29B2688956BD959F933F8
-    // Testnet ETHER ADDRESS 0x8BaBbB98678facC7342735486C851ABD7A0d17Ca
+    // Mainet ETHER ADDRESS 0x2170Ed0880ac9A755fd29B2688956BD959F933F8.
+    // Testnet ETHER ADDRESS 0x8BaBbB98678facC7342735486C851ABD7A0d17Ca.
+    
     address public busdDividendToken = 0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c; 
 
     address public deadAddress = 0x000000000000000000000000000000000000dEaD;
@@ -1390,8 +1449,11 @@ contract GREENWORLD is ERC20, Ownable {
     BUSDDividendTracker public busdDividendTracker;
     
     address public devWallet = 0xee30dAf600f3E6961cD9Ae70f9fc79c76686e6A9;
+    
     address public marketingWallet = 0x420390be63Fcd01fA3e7F691bdA9110c8374Dc38;
+    
     address public environmentalWallet = 0xB097899ed8BF429531309bd576861265F3F7a8F6;
+    
  
     uint256 public maxWalletBalance = 1000000000000000 * (10**18);
     // 10000
@@ -1437,11 +1499,15 @@ contract GREENWORLD is ERC20, Ownable {
     event UpdateUniswapV2Router(address indexed newAddress, address indexed oldAddress);
  
     event DevEnabledUpdated(bool enabled);
+    
     event MarketingEnabledUpdated(bool enabled);
+    
     event EnvironmentalEnabledUpdated(bool enabled);
+    
     event BusdDividendEnabledUpdated(bool enabled);
     
     event ExcludeFromFees(address indexed account, bool isExcluded);
+    
     event ExcludeMultipleAccountsFromFees(address[] accounts, bool isExcluded);
  
     event SetAutomatedMarketMakerPair(address indexed pair, bool indexed value);
@@ -1475,11 +1541,16 @@ contract GREENWORLD is ERC20, Ownable {
 
         // Mainnet PANCAKESWAP ADDRESS 0x10ED43C718714eb63d5aA57B78B54704E256024E
         // Testnet PANCAKESWAP ADDRESS 0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3
+	
+	
+	// Initializes a new Liquidity pool at Pancakeswap mainnet.
+	
     	IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
 
-         // Create a uniswap pair for this new token
-        address _uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory())
-            .createPair(address(this), _uniswapV2Router.WETH());
+
+        // Create a uniswap pair for this new token.
+	// The IUniswapV2Factory initialized at the `_uniswapV2Router.factory()` creates a pair with the current address and the `WETH()`
+        address _uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory()).createPair(address(this), _uniswapV2Router.WETH());
  
         uniswapV2Router = _uniswapV2Router;
         uniswapV2Pair = _uniswapV2Pair;
@@ -1492,6 +1563,7 @@ contract GREENWORLD is ERC20, Ownable {
         excludeFromDividend(deadAddress);
  
         // exclude from paying fees or having max transaction amount
+	
         excludeFromFees(devWallet, true);
         excludeFromFees(marketingWallet, true);
         excludeFromFees(environmentalWallet, true);
@@ -1509,21 +1581,36 @@ contract GREENWORLD is ERC20, Ownable {
         _mint(owner(), 1.000 * 10**9 * 10**18);
     }
  
+ 
+ 
+ 
     receive() external payable {
  
-  	}
+    }
+    
+    
+    
 
     function setRewardsFee(uint256 _rewardFee) external onlyOwner{
         busdDividendRewardsFee = _rewardFee;
     }
+    
+    
+    
 
     function setDevFee(uint256 _devFee) external onlyOwner{
         devFee = _devFee;
     }
+    
+    
+    
 
     function setMarketingFee(uint256 _marketingFee) external onlyOwner{
         marketingFee = _marketingFee;
     }
+
+
+
 
     function setEnvironmentalFee(uint256 _environmentalFee) external onlyOwner{
         environmentalFee = _environmentalFee;
@@ -1532,46 +1619,70 @@ contract GREENWORLD is ERC20, Ownable {
     function burn(address _account, uint256 _amount) external onlyOwner {
         emit Burn(_account, _amount);
         _burn(_account, _amount);
-    } 
- 
-  	function prepareForPartherOrExchangeListing(address _partnerOrExchangeAddress) external onlyOwner {
-  	    busdDividendTracker.excludeFromDividends(_partnerOrExchangeAddress);
-        excludeFromFees(_partnerOrExchangeAddress, true);
-  	}
- 
-  	function setWalletBalance(uint256 _maxWalletBalance) external onlyOwner{
-  	    maxWalletBalance = _maxWalletBalance;
-  	} 
- 
-  	function updateBusdDividendToken(address _newContract) external onlyOwner {
-  	    busdDividendToken = _newContract;
-  	    busdDividendTracker.setDividendTokenAddress(_newContract);
-  	}
- 
-  	function updateDevWallet(address _newWallet) external onlyOwner {
-  	    require(_newWallet != devWallet, "GREENWORLD: The dev wallet is already this address");
-        excludeFromFees(_newWallet, true);
-        emit DevWalletUpdated(devWallet, _newWallet);
-  	    devWallet = _newWallet;
-  	}
-      
-  	function updateMarketingWallet(address _newWallet) external onlyOwner {
-  	    require(_newWallet != marketingWallet, "GREENWORLD: The marketing wallet is already this address");
-        excludeFromFees(_newWallet, true);
-        emit MarketingWalletUpdated(marketingWallet, _newWallet);
-  	    marketingWallet = _newWallet;
-  	}
+    }
+    
+    
+    
 
-  	function updateEnvironmentalWallet(address _newWallet) external onlyOwner {
-  	    require(_newWallet != environmentalWallet, "GREENWORLD: The environmental wallet is already this address");
-        excludeFromFees(_newWallet, true);
-        emit EnvironmentalWalletUpdated(environmentalWallet, _newWallet);
-  	    environmentalWallet = _newWallet;
-  	}
- 
-  	function setSwapTokensAtAmount(uint256 _swapAmount) external onlyOwner {
-  	    swapTokensAtAmount = _swapAmount * (10**18);
-  	}
+    function prepareForPartherOrExchangeListing(address _partnerOrExchangeAddress) external onlyOwner {
+	busdDividendTracker.excludeFromDividends(_partnerOrExchangeAddress);
+	excludeFromFees(_partnerOrExchangeAddress, true);
+    }
+
+
+
+
+    function setWalletBalance(uint256 _maxWalletBalance) external onlyOwner{
+	maxWalletBalance = _maxWalletBalance;
+    } 
+
+
+
+
+    function updateBusdDividendToken(address _newContract) external onlyOwner {
+	busdDividendToken = _newContract;
+	busdDividendTracker.setDividendTokenAddress(_newContract);
+    }
+
+
+
+
+    function updateDevWallet(address _newWallet) external onlyOwner {
+	require(_newWallet != devWallet, "GREENWORLD: The dev wallet is already this address");
+	excludeFromFees(_newWallet, true);
+	emit DevWalletUpdated(devWallet, _newWallet);
+	devWallet = _newWallet;
+    }
+
+
+
+
+    function updateMarketingWallet(address _newWallet) external onlyOwner {
+	require(_newWallet != marketingWallet, "GREENWORLD: The marketing wallet is already this address");
+	excludeFromFees(_newWallet, true);
+	emit MarketingWalletUpdated(marketingWallet, _newWallet);
+	marketingWallet = _newWallet;
+    }
+
+
+
+
+    function updateEnvironmentalWallet(address _newWallet) external onlyOwner {
+	require(_newWallet != environmentalWallet, "GREENWORLD: The environmental wallet is already this address");
+	excludeFromFees(_newWallet, true);
+	emit EnvironmentalWalletUpdated(environmentalWallet, _newWallet);
+	environmentalWallet = _newWallet;
+    }
+
+
+
+
+    function setSwapTokensAtAmount(uint256 _swapAmount) external onlyOwner {
+	swapTokensAtAmount = _swapAmount * (10**18);
+    }
+	
+	
+	
  
     function setTradingIsEnabled(bool _enabled) external onlyOwner {
         if(_enabled == true){
@@ -1579,10 +1690,16 @@ contract GREENWORLD is ERC20, Ownable {
         }
         tradingIsEnabled = _enabled;
     }
+    
+    
+    
  
     function setAuthOnDividends(address account) public onlyOwner {
         busdDividendTracker.setAuth(account);
     }
+ 
+ 
+ 
  
     function setBusdDividendEnabled(bool _enabled) external onlyOwner {
         require(busdDividendEnabled != _enabled, "Can't set flag to same status");
@@ -1594,6 +1711,8 @@ contract GREENWORLD is ERC20, Ownable {
  
         emit BusdDividendEnabledUpdated(_enabled);
     }
+    
+    
  
  
     function setDevEnabled(bool _enabled) external onlyOwner {
@@ -1606,6 +1725,9 @@ contract GREENWORLD is ERC20, Ownable {
  
         emit DevEnabledUpdated(_enabled);
     }
+    
+    
+    
 
     function setMarketingEnabled(bool _enabled) external onlyOwner {
         require(marketingEnabled != _enabled, "Can't set flag to same status");
@@ -1617,6 +1739,9 @@ contract GREENWORLD is ERC20, Ownable {
  
         emit MarketingEnabledUpdated(_enabled);
     }
+    
+    
+    
 
     function setEnvironmentalEnabled(bool _enabled) external onlyOwner {
         require(environmentalEnabled != _enabled, "Can't set flag to same status");
@@ -1628,6 +1753,8 @@ contract GREENWORLD is ERC20, Ownable {
  
         emit EnvironmentalEnabledUpdated(_enabled);
     }
+ 
+ 
  
  
     function updatebusdDividendTracker(address newAddress) external onlyOwner {
@@ -1647,11 +1774,17 @@ contract GREENWORLD is ERC20, Ownable {
         busdDividendTracker = newbusdDividendTracker;
     }
  
+ 
+ 
+ 
     function updateUniswapV2Router(address newAddress) external onlyOwner {
         require(newAddress != address(uniswapV2Router), "GREENWORLD: The router already has that address");
         emit UpdateUniswapV2Router(newAddress, address(uniswapV2Router));
         uniswapV2Router = IUniswapV2Router02(newAddress);
     }
+ 
+ 
+ 
  
     function excludeFromFees(address account, bool excluded) public onlyOwner {
         require(isExcludedFromFees[account] != excluded, "GREENWORLD: Account is already exluded from fees");
@@ -1660,16 +1793,25 @@ contract GREENWORLD is ERC20, Ownable {
         emit ExcludeFromFees(account, excluded);
     }
  
+ 
+ 
+ 
     function excludeFromDividend(address account) public onlyOwner {
         busdDividendTracker.excludeFromDividends(address(account));
        
     }
+ 
+ 
+ 
  
     function setAutomatedMarketMakerPair(address pair, bool value) public onlyOwner {
         require(pair != uniswapV2Pair, "GREENWORLD: The PancakeSwap pair cannot be removed from automatedMarketMakerPairs");
  
         _setAutomatedMarketMakerPair(pair, value);
     }
+ 
+ 
+ 
  
     function _setAutomatedMarketMakerPair(address pair, bool value) private onlyOwner {
         require(automatedMarketMakerPairs[pair] != value, "GREENWORLD: Automated market maker pair is already set to that value");
@@ -1683,41 +1825,66 @@ contract GREENWORLD is ERC20, Ownable {
         emit SetAutomatedMarketMakerPair(pair, value);
     }
  
+ 
+ 
+ 
     function updateGasForProcessing(uint256 newValue) external onlyOwner {
         require(newValue != gasForProcessing, "GREENWORLD: Cannot update gasForProcessing to same value");
         gasForProcessing = newValue;
         emit GasForProcessingUpdated(newValue, gasForProcessing);
     }
  
+ 
+ 
+ 
     function updateMinimumBalanceForDividends(uint256 newMinimumBalance) external onlyOwner {
         busdDividendTracker.updateMinimumTokenBalanceForDividends(newMinimumBalance);
     }
+    
+    
+    
  
     function updateClaimWait(uint256 claimWait) external onlyOwner {
         busdDividendTracker.updateClaimWait(claimWait);
 
     }
+    
+    
+    
  
     function getBusdClaimWait() external view returns(uint256) {
         return busdDividendTracker.claimWait();
     }
  
+ 
+ 
+ 
     function getTotalBusdDividendsDistributed() external view returns (uint256) {
         return busdDividendTracker.totalDividendsDistributed();
     }
  
+ 
+ 
+ 
     function getIsExcludedFromFees(address account) public view returns(bool) {
         return isExcludedFromFees[account];
     }
+    
+    
+    
  
     function withdrawableBusdDividendOf(address account) external view returns(uint256) {
     	return busdDividendTracker.withdrawableDividendOf(account);
-  	}
+    }
  
   	
-	function busdDividendTokenBalanceOf(address account) external view returns (uint256) {
-		return busdDividendTracker.balanceOf(account);
-	}
+	
+	
+    function busdDividendTokenBalanceOf(address account) external view returns (uint256) {
+	return busdDividendTracker.balanceOf(account);
+    }
+ 
+ 
  
 	
     function getAccountBusdDividendsInfo(address account)
@@ -1734,7 +1901,9 @@ contract GREENWORLD is ERC20, Ownable {
     }
  
  
-	function getAccountBusdDividendsInfoAtIndex(uint256 index)
+ 
+ 
+    function getAccountBusdDividendsInfoAtIndex(uint256 index)
         external view returns (
             address,
             int256,
@@ -1748,22 +1917,35 @@ contract GREENWORLD is ERC20, Ownable {
     }
  
     
-	function processDividendTracker(uint256 gas) external onlyOwner {
-		(uint256 busdIterations, uint256 busdClaims, uint256 busdLastProcessedIndex) = busdDividendTracker.process(gas);
-		emit ProcessedbusdDividendTracker(busdIterations, busdClaims, busdLastProcessedIndex, false, gas, tx.origin);
+    
+    
+    function processDividendTracker(uint256 gas) external onlyOwner {
+	(uint256 busdIterations, uint256 busdClaims, uint256 busdLastProcessedIndex) = busdDividendTracker.process(gas);
+	emit ProcessedbusdDividendTracker(busdIterations, busdClaims, busdLastProcessedIndex, false, gas, tx.origin);
     }
+ 
+ 
+ 
  
     function claim() external {
 		busdDividendTracker.processAccount(payable(msg.sender), false);	
     }
+    
+    
+    
 
     function getLastBusdDividendProcessedIndex() external view returns(uint256) {
     	return busdDividendTracker.getLastProcessedIndex();
     }
+    
+    
+    
  
     function getNumberOfBusdDividendTokenHolders() external view returns(uint256) {
         return busdDividendTracker.getNumberOfTokenHolders();
     }
+ 
+ 
  
  
     function _transfer(
@@ -1850,6 +2032,9 @@ contract GREENWORLD is ERC20, Ownable {
         }
     } 
  
+ 
+ 
+ 
     function swapTokensForBNB(uint256 tokenAmount) private {
         // generate the uniswap pair path of token -> weth
         address[] memory path = new address[](2);
@@ -1868,6 +2053,9 @@ contract GREENWORLD is ERC20, Ownable {
         );
  
     }
+    
+    
+    
  
     function swapTokensForDividendToken(uint256 _tokenAmount, address _recipient, address _dividendAddress) private {
         address[] memory path = new address[](3);
@@ -1887,6 +2075,9 @@ contract GREENWORLD is ERC20, Ownable {
         );
     }
  
+ 
+ 
+ 
     function swapAndSendBusdDividends(uint256 tokens) private {
         swapTokensForDividendToken(tokens, address(this), busdDividendToken);
         uint256 busdDividends = IERC20(busdDividendToken).balanceOf(address(this));
@@ -1894,9 +2085,14 @@ contract GREENWORLD is ERC20, Ownable {
     }
  
  
+ 
+ 
     function transferToWallet(address payable recipient, uint256 amount) private {
         recipient.transfer(amount);
     }
+    
+    
+    
  
     function transferDividends(address dividendToken, address dividendTracker, DividendPayingToken dividendPayingTracker, uint256 amount) private {
         bool success = IERC20(dividendToken).transfer(dividendTracker, amount);
@@ -1906,4 +2102,5 @@ contract GREENWORLD is ERC20, Ownable {
             emit SendDividends(amount);
         }
     }
+    
 }
