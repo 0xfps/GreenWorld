@@ -3,82 +3,46 @@ pragma solidity ^0.8.4;
 
 /*
 * @author-original: Perelyn-Sama @ https://github.com/Perelyn-sama
-*
 * @modified-by: Anthony(fps) @ https://github.com/fps8k
 */
-
-
 abstract contract Context {
-
     // {_msgSender()} Returns the payable address of the caller i.e `msg.sender`.
-    
     function _msgSender() internal view virtual returns (address payable) {
         return payable(msg.sender);
     }
- 
- 
- 
- 
+    
     // {_msgData()} Returns transaction data contained in the `msg.data`.
- 
     function _msgData() internal view virtual returns (bytes memory) {
         this; // silence state mutability warning without generating bytecode - see https://github.com/ethereum/solidity/issues/2691
         return msg.data;
     }
-    
 }
 
-
-
-
 abstract contract Ownable is Context {
-
     address private _owner;
- 
- 
+    
     // Event {OwnershipTransferred} called on contract creation or whenever ownership of the contract is transferred.
- 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
  
- 
- 
- 
-    constructor () {
-    
+    constructor() {
         // Fetch the deployer of the contract from the {_msgSender()} function and assign it to address `msgSender`.
-    
         address msgSender = _msgSender();
-	
-	
 	// Makes this address above the owner, and emits the {OwnershipTransferred} event.
-	
         _owner = msgSender;
-	
         emit OwnershipTransferred(address(0), msgSender);
     }
  
- 
- 
- 
-    // Returns the current owner of the contract from the address variable `owner`.
-    
+    // Returns the current owner of the contract from the address variable `owner`.   
     function owner() public view virtual returns (address) {
         return _owner;
     }
- 
- 
- 
- 
-    // Modifier {onlOwner()} makes sure that the current caller of the modified function is the current owner address `_owner` of the contract.
     
+    // Modifier {onlOwner()} makes sure that the current caller of the modified function is the current owner address `_owner` of the contract.
     modifier onlyOwner() {
         require(owner() == _msgSender(), "Ownable: caller is not the owner");
         _;
     }
- 
- 
- 
- 
+    
     /*
     * @dev:
     * Emits the {OwnershipTransferred()} event.
@@ -86,15 +50,11 @@ abstract contract Ownable is Context {
     * {renounceOwnership()}, removes the right to the ownership of the contract from the `_owner`.
     *
     * Sets the owner to a zero address;
-    */
-    
+    */    
     function renounceOwnership() public virtual onlyOwner {
         emit OwnershipTransferred(_owner, address(0));
         _owner = address(0);
     }
- 
- 
- 
  
     /*
     * @dev:
@@ -106,148 +66,91 @@ abstract contract Ownable is Context {
     *
     * Emits the {OwnershipTransferred()} event.
     */
-    
     function transferOwnership(address newOwner) public virtual onlyOwner {
         require(newOwner != address(0), "Ownable: new owner is the zero address");
         emit OwnershipTransferred(_owner, newOwner);
         _owner = newOwner;
-    }
-    
+    }   
 }
-
-
 
 
 /*
 * IERC20 Interface: 
 * See https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/IERC20.sol for more details.
 */
-
 interface IERC20 {
-
     function totalSupply() external view returns (uint256);
- 
     function balanceOf(address account) external view returns (uint256);
- 
     function transfer(address recipient, uint256 amount) external returns (bool);
- 
     function allowance(address owner, address spender) external view returns (uint256);
- 
     function approve(address spender, uint256 amount) external returns (bool);
- 
     function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
- 
     event Transfer(address indexed from, address indexed to, uint256 value);
- 
     event Approval(address indexed owner, address indexed spender, uint256 value);
-    
 }
-
-
 
 
 /*
 * ERC20 Contract Implementing IERC20 Interface: 
 * See https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/ERC20.sol for more details.
 */
-
 contract ERC20 is Context, IERC20 {
-
     // Using for.
-
     using SafeMath for uint256;
-    
-    
     // Mapping addresses to their amount `balances`.
- 
     mapping (address => uint256) private _balances;
-    
-    
     // Mapping addressess to a map of addresses to amounts in `allowances`.
- 
     mapping (address => mapping (address => uint256)) private _allowances;
-    
-    
     // Token data.
- 
     uint256 private _totalSupply;
- 
     string private _name;
     string private _symbol;
     uint8 private _decimals;
- 
-    constructor (string memory name_, string memory symbol_) {
+    
+    constructor(string memory name_, string memory symbol_) {
         _name = name_;
         _symbol = symbol_;
         _decimals = 18;
     }
  
- 
- 
- 
     // Returns the name of the token.
-    
     function name() public view virtual returns (string memory) {
         return _name;
     }
- 
- 
- 
- 
-    // Returns the symbol of the token.
     
+    // Returns the symbol of the token.
     function symbol() public view virtual returns (string memory) {
         return _symbol;
     }
  
- 
- 
- 
     // Returns the number of decimals of the token.
-    
     function decimals() public view virtual returns (uint8) {
         return _decimals;
     }
  
- 
- 
- 
-    // Returns the total number of tokens in existence.
-    
+    // Returns the total number of tokens in existence.   
     function totalSupply() public view virtual override returns (uint256) {
         return _totalSupply;
     }
  
- 
- 
- 
     // Returns the amount of tokens that `account` has.
-    
     function balanceOf(address account) public view virtual override returns (uint256) {
         return _balances[account];
     }
- 
- 
- 
  
     /*
     * @dev:
     * {transfer()} reference comments for {_transfer()} on line 326.
     */
-    
     function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
  
- 
- 
- 
     /*
     * @dev:
     * {allowance()} returns allowances that the `spender` can spend on behalf of the `owner`.
-    */
-    
+    */ 
     function allowance(address owner, address spender) public view virtual override returns (uint256) {
         return _allowances[owner][spender];
     }
