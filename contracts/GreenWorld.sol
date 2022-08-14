@@ -349,58 +349,28 @@ contract DividendPayingToken is ERC20, IDividendPayingToken, IDividendPayingToke
         totalDividendsDistributed = totalDividendsDistributed.add(amount);
     }
   }
- 
- 
- 
- 
-  // Reference line 585.
   
   function withdrawDividend() public virtual override {
     _withdrawDividendOfUser(payable(msg.sender));
   }
  
- 
- 
- 
-  // Sets the new `dividendToken` to `newToken` address.
-  
+  // Sets the new `dividendToken` to `newToken` address. 
   function setDividendTokenAddress(address newToken) external virtual onlyOwner{
       dividendToken = newToken;
   }
- 
- 
- 
- 
+  
   /*
   * @dev:
   * {_withdrawDividendOfUser()}
-  *
-  * STEPS:
-  * a. Returns the `_withdrawableDividend` [from the withdrawableDividendOf() function].
-  * b. Adds the `_withdrawableDividend` to the already `withdrawnDividends` mapping of the user if the `_withdrawableDividend` is > 0.
-  * c. Implements the IERC20 interface at the address of the `dividendToken` and transfers the `_withdrawableDividend` to the `user`, this returns a bool [reference IERC20 transfer() function].
-  * d. Then the `_withdrawableDividend` is subtracted from the `withdrawnDividends` mapped to the `user` and returns the `_withdrawableDividend`.
-  * e. If false, it returns 0.
-  *
-  * How do you add to dividends?
   */
-  
   function _withdrawDividendOfUser(address payable user) internal returns (uint256) {
     uint256 _withdrawableDividend = withdrawableDividendOf(user);
+    
     if (_withdrawableDividend > 0) {
       withdrawnDividends[user] = withdrawnDividends[user].add(_withdrawableDividend);
       emit DividendWithdrawn(user, _withdrawableDividend);
       bool success = IERC20(dividendToken).transfer(user, _withdrawableDividend);
       
-      /*
-      * But I guess I coulda just used
-      * TokenContractName variable_name = new TokenContractName(); 						## For new test deployment.
-      * OR
-      * TokenContractName variable_name = TokenContractName(mainnet/testnet deployed address of Token); 	## For calling an already deployed contract.
-      *
-      * variable_name.transfer(user, _withdrawableDividend);							## Works same as line 590. 😉
-      */
- 
       if(!success) {
         withdrawnDividends[user] = withdrawnDividends[user].sub(_withdrawableDividend);
         return 0;
@@ -412,44 +382,23 @@ contract DividendPayingToken is ERC20, IDividendPayingToken, IDividendPayingToke
     return 0;
   }
  
- 
- 
- 
   // Returns the dividend assigned to the `_owner`.
- 
   function dividendOf(address _owner) public view override returns(uint256) {
     return withdrawableDividendOf(_owner);
   }
- 
- 
- 
- 
-  // Returns the balance of the `accumulativeDividendOf` the `_owner` after the `withdrawnDividends` of `_owner` are subtracted.
-  // Basically returns the amount of dividends that `_owner` can withdraw.
  
   function withdrawableDividendOf(address _owner) public view override returns(uint256) {
     return accumulativeDividendOf(_owner).sub(withdrawnDividends[_owner]);
   }
  
- 
- 
- 
-  // Returns the withdrawn dividends from the `withdrawnDividends` mapped the `_owner`.
- 
   function withdrawnDividendOf(address _owner) public view override returns(uint256) {
     return withdrawnDividends[_owner];
   }
- 
- 
- 
  
   function accumulativeDividendOf(address _owner) public view override returns(uint256) {
     return magnifiedDividendPerShare.mul(balanceOf(_owner)).toInt256Safe()
       .add(magnifiedDividendCorrections[_owner]).toUint256Safe() / magnitude;
   }
- 
- 
- 
  
   function _transfer(address from, address to, uint256 value) internal virtual override {
     require(false);
@@ -459,9 +408,6 @@ contract DividendPayingToken is ERC20, IDividendPayingToken, IDividendPayingToke
     magnifiedDividendCorrections[to] = magnifiedDividendCorrections[to].sub(_magCorrection);
   }
  
- 
- 
- 
   function _mint(address account, uint256 value) internal override {
     super._mint(account, value);
  
@@ -469,18 +415,12 @@ contract DividendPayingToken is ERC20, IDividendPayingToken, IDividendPayingToke
       .sub( (magnifiedDividendPerShare.mul(value)).toInt256Safe() );
   }
  
- 
- 
- 
   function _burn(address account, uint256 value) internal override {
     super._burn(account, value);
  
     magnifiedDividendCorrections[account] = magnifiedDividendCorrections[account]
       .add( (magnifiedDividendPerShare.mul(value)).toInt256Safe() );
   }
- 
- 
- 
  
   function _setBalance(address account, uint256 newBalance) internal {
     uint256 currentBalance = balanceOf(account);
@@ -493,77 +433,43 @@ contract DividendPayingToken is ERC20, IDividendPayingToken, IDividendPayingToke
       _burn(account, burnAmount);
     }
   }
-  
 }
- 
- 
  
  
 ////////////////////////////////
 ///////// Interfaces ///////////
 ////////////////////////////////
- 
 interface IUniswapV2Factory {
-
     event PairCreated(address indexed token0, address indexed token1, address pair, uint);
- 
     function feeTo() external view returns (address);
-    
     function feeToSetter() external view returns (address);
- 
     function getPair(address tokenA, address tokenB) external view returns (address pair);
-    
     function allPairs(uint) external view returns (address pair);
-    
     function allPairsLength() external view returns (uint);
- 
     function createPair(address tokenA, address tokenB) external returns (address pair);
- 
     function setFeeTo(address) external;
-    
     function setFeeToSetter(address) external;
-    
 }
  
- 
- 
- 
-interface IUniswapV2Pair {
 
+interface IUniswapV2Pair {
     event Approval(address indexed owner, address indexed spender, uint value);
-    
     event Transfer(address indexed from, address indexed to, uint value);
- 
     function name() external pure returns (string memory);
-    
     function symbol() external pure returns (string memory);
-    
     function decimals() external pure returns (uint8);
-    
     function totalSupply() external view returns (uint);
-    
     function balanceOf(address owner) external view returns (uint);
-    
     function allowance(address owner, address spender) external view returns (uint);
- 
     function approve(address spender, uint value) external returns (bool);
-    
     function transfer(address to, uint value) external returns (bool);
-    
     function transferFrom(address from, address to, uint value) external returns (bool);
- 
     function DOMAIN_SEPARATOR() external view returns (bytes32);
-    
     function PERMIT_TYPEHASH() external pure returns (bytes32);
-    
     function nonces(address owner) external view returns (uint);
- 
     function permit(address owner, address spender, uint value, uint deadline, uint8 v, bytes32 r, bytes32 s) external;
- 
     event Mint(address indexed sender, uint amount0, uint amount1);
-    
     event Burn(address indexed sender, uint amount0, uint amount1, address indexed to);
-    
     event Swap(
         address indexed sender,
         uint amount0In,
@@ -572,91 +478,50 @@ interface IUniswapV2Pair {
         uint amount1Out,
         address indexed to
     );
-    
     event Sync(uint112 reserve0, uint112 reserve1);
- 
     function MINIMUM_LIQUIDITY() external pure returns (uint);
-    
     function factory() external view returns (address);
-    
     function token0() external view returns (address);
-    
     function token1() external view returns (address);
-    
     function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast);
-    
     function price0CumulativeLast() external view returns (uint);
-    
     function price1CumulativeLast() external view returns (uint);
-    
     function kLast() external view returns (uint);
- 
     function mint(address to) external returns (uint liquidity);
-    
     function burn(address to) external returns (uint amount0, uint amount1);
-    
     function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external;
-    
     function skim(address to) external;
-    
     function sync() external;
- 
     function initialize(address, address) external;
 }
  
- 
- 
- 
-interface IUniswapV2Router01 {
 
+interface IUniswapV2Router01 {
     function factory() external pure returns (address);
-    
     function WETH() external pure returns (address);
- 
     function addLiquidity( address tokenA, address tokenB, uint amountADesired, uint amountBDesired, uint amountAMin, uint amountBMin, address to, uint deadline ) external returns (uint amountA, uint amountB, uint liquidity); 
-    
     function addLiquidityETH( address token, uint amountTokenDesired, uint amountTokenMin, uint amountETHMin, address to, uint deadline ) external payable returns (uint amountToken, uint amountETH, uint liquidity); 
-    
     function removeLiquidity( address tokenA, address tokenB, uint liquidity, uint amountAMin, uint amountBMin, address to, uint deadline ) external returns (uint amountA, uint amountB); 
-    
     function removeLiquidityETH( address token, uint liquidity, uint amountTokenMin, uint amountETHMin, address to, uint deadline ) external returns (uint amountToken, uint amountETH); 
-    
     function removeLiquidityWithPermit( address tokenA, address tokenB, uint liquidity, uint amountAMin, uint amountBMin, address to, uint deadline, bool approveMax, uint8 v, bytes32 r, bytes32 s ) external returns (uint amountA, uint amountB); 
-    
     function removeLiquidityETHWithPermit( address token, uint liquidity, uint amountTokenMin, uint amountETHMin, address to, uint deadline, bool approveMax, uint8 v, bytes32 r, bytes32 s ) external returns (uint amountToken, uint amountETH); 
-    
     function swapExactTokensForTokens( uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline ) external returns (uint[] memory amounts); 
-    
     function swapTokensForExactTokens( uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline ) external returns (uint[] memory amounts); 
-    
     function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts); 
-    
-    function swapTokensForExactETH(uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts); 
-    
+    function swapTokensForExactETH(uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline) external returns (uint[] memory amo
     function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts); 
-    
     function swapETHForExactTokens(uint amountOut, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts); 
-    
     function quote(uint amountA, uint reserveA, uint reserveB) external pure returns (uint amountB);
-    
     function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) external pure returns (uint amountOut);
-    
     function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut) external pure returns (uint amountIn);
-    
     function getAmountsOut(uint amountIn, address[] calldata path) external view returns (uint[] memory amounts);
-    
     function getAmountsIn(uint amountOut, address[] calldata path) external view returns (uint[] memory amounts);
-    
 }
  
- 
- 
- 
+
 interface IUniswapV2Router02 is IUniswapV2Router01 {
     function removeLiquidityETHSupportingFeeOnTransferTokens( address token, uint liquidity, uint amountTokenMin, uint amountETHMin, address to, uint deadline ) external returns (uint amountETH); 
-    function removeLiquidityETHWithPermitSupportingFeeOnTransferTokens( address token, uint liquidity, uint amountTokenMin, uint amountETHMin, address to, uint deadline, bool approveMax, uint8 v, bytes32 r, bytes32 s ) external returns (uint amountETH); 
-    
-    
+    function removeLiquidityETHWithPermitSupportingFeeOnTransferTokens( address token, uint liquidity, uint amountTokenMin, uint amountETHMin, address to, uint deadline, bool approveMax, uint8 v, bytes32 r, bytes32 s ) external returns (uint amountETH);     
     function swapExactTokensForTokensSupportingFeeOnTransferTokens( uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline ) external; 
     function swapExactETHForTokensSupportingFeeOnTransferTokens( uint amountOutMin, address[] calldata path, address to, uint deadline ) external payable; 
     function swapExactTokensForETHSupportingFeeOnTransferTokens( uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline ) external; 
@@ -664,16 +529,10 @@ interface IUniswapV2Router02 is IUniswapV2Router01 {
 }
  
  
- 
- 
 ////////////////////////////////
 ////////// Libraries ///////////
 ////////////////////////////////
- 
 library IterableMapping {
-
-    // Iterable mapping from address to uint;
-    
     struct Map {
         address[] keys;
         mapping(address => uint) values;
