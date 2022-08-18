@@ -2,8 +2,8 @@
 pragma solidity ^0.8.4;
 
 /*
-* @author-original: Perelyn-Sama @ https://github.com/Perelyn-sama
-* @modified-by: Anthony(fps) @ https://github.com/fps8k
+* @author: Perelyn-Sama https://github.com/Perelyn-sama.
+* @modified: Anthony (fps) https://github.com/0xfps.
 */
 abstract contract Context {
     // {_msgSender()} Returns the payable address of the caller i.e `msg.sender`.
